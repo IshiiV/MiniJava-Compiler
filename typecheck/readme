@@ -1,0 +1,5 @@
+As classes do typecheck sao utilizadas para agregar dados relativos aos tipos e os nomes dos simbolso do programa. 
+
+Um ClassEntry representa do dados de uma classe do programa, 
+MethodEntry representa os metodos de uma classe,
+VarEntry representa um binding dentro de uma classe ou metodo.

@@ -1,0 +1,469 @@
+//Minijava project
+//Authors: Eduardo, Vando and Victor.
+options {
+  JAVA_UNICODE_ESCAPE = true;
+}
+
+PARSER_BEGIN(MiniJavaParser)
+import syntaxtree.*;
+public class MiniJavaParser {}
+PARSER_END(MiniJavaParser)
+
+// Lexical analysis specifications(tokens).
+
+SKIP : { " " }
+SKIP : { "\n" | "\r" | "\r\n" }
+SKIP : { "\t" }
+SKIP : { < "//" (~["\r", "\n"])* >|
+< "/*" > : ML_COMMENT_STATE}
+<ML_COMMENT_STATE> SKIP :{< "*/" > : DEFAULT|
+< ~[] >   }
+TOKEN : { < DOT : "." > }
+TOKEN : { < VIRG : "," > }
+TOKEN : { < SEMICOLON : ";" > }
+TOKEN : { < ASSIGN: "=" > }
+TOKEN : { < EQ : "==" > }
+TOKEN : { < PLUS : "+" > }
+TOKEN : { < SUB: "-" > }
+TOKEN : { < DIV: "/" > }
+TOKEN : { < MUL : "*" > }
+TOKEN : { < LPAREN: "(" > }
+TOKEN : { < RPAREN: ")" > }
+TOKEN : { < LCOUCH: "[" > }
+TOKEN : { < RCOUCH: "]" > }
+TOKEN : { < LBRACE : "{"> }
+TOKEN : { < RBRACE : "}"> }
+TOKEN : { < NOT : "!" >  }
+TOKEN : { < AND : "&&" > }
+TOKEN : { < OR: "||" > }
+TOKEN : { < LESS : "<" > }
+TOKEN : { < GREATER : ">" > }
+TOKEN : { < IF : "if" > }
+TOKEN : { < ELSE : "else" > }
+TOKEN : { < WHILE : "while" > }
+TOKEN : { < TRUE : "true" > }
+TOKEN : { < FALSE : "false" > }
+TOKEN : { < NEW: "new" > }
+TOKEN : { < THIS: "this" > }
+TOKEN : { < VOID : "void" > }
+TOKEN : { < LENGTH : "length" > }
+TOKEN : { < BOOLEAN : "boolean" > }
+TOKEN : { < INTEGER : "int" > }
+TOKEN : { < STRING : "String" > }
+TOKEN : { < STATIC : "static" > }
+TOKEN : { < EXTENDS : "extends" > }
+TOKEN : { < RETURN : "return" > }
+TOKEN : { < CLASS : "class" > }
+TOKEN : { < PUBLIC : "public" > }
+TOKEN : { < MAIN : "main" > }
+TOKEN : { < IDENTIFIER : (< LETTER >) (< LETTER >| < DIGIT >)* >}
+TOKEN : { < #DIGIT : ["0" - "9"] > }
+TOKEN : { < LETTER : ["a" - "z"] | ["A" - "Z"] | "_" > }
+TOKEN : { < INTEGER_LITERAL : (< DIGIT >)+ > }
+TOKEN : { < PRINT: "System.out.println" > }
+TOKEN :
+{ <BEGIN : "begin" >
+| < END : "end" >
+| < DO : "do" >
+| < THEN : "then" >
+}
+
+// The following is a simple grammar that will allow you
+// to test the generated lexer.
+Program Goal() :
+{
+  	MainClass mc;
+  	ClassDeclList cdl;
+}
+{
+	mc= MainClass() cdl = ClassDeclarationList()
+	{
+		return new Program(mc,cdl);
+	}
+}
+
+MainClass MainClass():
+{
+  	Identifier i1,i2;
+  	Statement s;
+}
+{
+	<CLASS> i1 = Identifier() <LBRACE>
+	<PUBLIC> <STATIC> <VOID> <MAIN> <LPAREN> <STRING> <LCOUCH> <RCOUCH> i2 = Identifier() <RPAREN> <LBRACE>
+	s = Statement()
+	<RBRACE>
+	<RBRACE>
+	{
+	  	return new MainClass(i1,i2,s);
+	}
+}
+
+Identifier Identifier():
+{
+  	Token t;
+}
+{
+  	t = <IDENTIFIER>
+	{
+	  	return new Identifier(t.image);
+	}
+}
+
+ClassDeclList ClassDeclarationList():
+{
+  	ClassDeclList cdl = new ClassDeclList();
+  	ClassDecl cd;
+}
+{
+  	(LOOKAHEAD(2) cd = ClassDeclarationAux() {cdl.addElement(cd);})*
+  	{
+  	  	return cdl;
+  	}
+}
+
+ClassDecl ClassDeclarationAux():
+{
+  	ClassDecl cd;
+}
+{
+  	(LOOKAHEAD(3) cd = ClassDeclarationSimple()|cd = ClassDeclarationExtends())
+  	{
+  	  	return cd;
+  	}
+}
+
+ClassDeclSimple ClassDeclarationSimple():
+{
+  	Identifier i1;
+  	VarDeclList vdl;
+  	MethodDeclList mdl;
+}
+{
+	<CLASS> i1 = Identifier() <LBRACE>
+	vdl = VarDeclarationList()
+	mdl = MethodDeclarationList()
+	<RBRACE>
+	{
+		return new ClassDeclSimple(i1,vdl,mdl);
+	}
+}
+
+ClassDeclExtends ClassDeclarationExtends():
+{
+  	Identifier i1,i2;
+  	VarDeclList vdl;
+  	MethodDeclList mdl;
+}
+{
+	<CLASS> i1 = Identifier() <EXTENDS> i2 = Identifier() <LBRACE>
+	vdl = VarDeclarationList()
+	mdl = MethodDeclarationList()
+	<RBRACE>
+	{
+		return new ClassDeclExtends(i1,i2,vdl,mdl);
+	}
+}
+
+VarDeclList VarDeclarationList():
+{
+  	VarDecl vd;
+  	VarDeclList vdl = new VarDeclList();
+}
+{
+  	(LOOKAHEAD(2) vd = VarDeclaration() {vdl.addElement(vd);})*
+  	{
+  	  	return vdl;
+  	}
+}
+
+VarDecl VarDeclaration() :	
+{
+	Type t;
+	Identifier i;
+}
+{
+	t = Type() i = Identifier() <SEMICOLON>
+	{
+	  	return new VarDecl(t,i);
+	}
+}
+
+MethodDeclList MethodDeclarationList():
+{
+  	MethodDecl md;
+  	MethodDeclList mdl = new MethodDeclList();
+}
+{
+  	(md = MethodDeclaration() {mdl.addElement(md);})*
+  	{
+  	  	return mdl;
+  	}
+}
+
+MethodDecl MethodDeclaration() :
+{
+  	Type t;
+  	Identifier i1;
+  	FormalList fl = null;
+  	VarDeclList vdl;
+  	StatementList sl;
+  	Exp e;
+}
+{
+  	<PUBLIC> t = Type() i1 = Identifier() <LPAREN> (fl = FormalList())? <RPAREN> <LBRACE>
+	vdl = VarDeclarationList()
+	sl = StatementList()
+	<RETURN>
+	e = Exp()
+	<SEMICOLON>
+	<RBRACE>
+	{
+	  	return new MethodDecl(t,i1,fl,vdl,sl,e);
+	}
+}
+
+FormalList FormalList():
+{
+  	Formal f,fe;
+  	FormalList fl = new FormalList();
+}
+{
+  	f = Formal() {fl.addElement(f);} (fe = FormalExtra() {fl.addElement(fe);})*
+  	{
+  	  	return fl;
+  	}
+}
+
+Formal Formal() : 
+{
+  	Type t;
+  	Identifier i;
+}
+{
+  	t = Type() i = Identifier()
+  	{
+  	  	return new Formal(t,i);
+  	}
+}
+
+Formal FormalExtra() : 
+{
+  	Type t;
+  	Identifier i;
+}
+{
+	<VIRG> t = Type() i = Identifier()
+	{
+	  	return new Formal(t,i);
+	}
+}
+
+Type Type():
+{
+  	Type t;
+}
+{
+	(LOOKAHEAD(2) t = IntArrayType()|t = BooleanType()|t = IntegerType()|t = IdentifierType())
+	{
+	  	return t;
+	}
+}
+
+Type IntArrayType():
+{
+}
+{
+  	<INTEGER> <LCOUCH> <RCOUCH>
+  	{
+  	  	return new IntArrayType();
+  	}  	
+}
+
+Type BooleanType():
+{
+}
+{
+  	<BOOLEAN>
+  	{
+  	  	return new BooleanType();
+  	}  	
+}
+
+Type IntegerType():
+{
+}
+{
+  	<INTEGER>	
+  	{
+  	  	return new IntegerType();
+  	}  	
+}
+
+Type IdentifierType():
+{
+  	Identifier i;
+}
+{
+  	i = Identifier()
+  	{
+  	  	return new IdentifierType(i.s);
+  	}  	
+}
+
+ExpList ExpList():
+{
+  	Exp e,ee;
+  	ExpList el = new ExpList();
+}
+{
+  	e = Exp() {el.addElement(e);} (ee = ExpExtra() {el.addElement(ee);})*
+  	{ 
+  		return el;
+	}
+}
+
+Exp Exp():
+{
+  	Exp e;
+}
+{
+  	e = ExpFirst()
+	{
+	  	return ExpSecond(e);
+   	}
+}
+
+Exp ExpExtra():
+{
+  	Exp e;
+}
+{
+  	<VIRG> e = ExpFirst()
+	{
+	  	return ExpSecond(e);
+   	}
+}
+
+Exp ExpFirst():
+{
+  	Token t;
+  	Identifier i1;
+  	Exp e;
+}
+{
+	t = <INTEGER_LITERAL> {return new IntegerLiteral(Integer.parseInt(t.image));}|
+	<TRUE> {return new True();}|
+	<FALSE> {return new False();}|
+	i1 = Identifier() {return new IdentifierExp(i1.toString());}|
+	<THIS> {return new This();}|
+	LOOKAHEAD(3) <NEW> <INTEGER> <LCOUCH> e = Exp() <RCOUCH> {return new NewArray(e);}|
+	LOOKAHEAD(3) <NEW> i1 = Identifier() <LPAREN> <RPAREN> {return new NewObject(i1);}|
+	<NOT> e = Exp() {return new Not(e);}|
+	<LPAREN> e = Exp() <RPAREN> {return ExpSecond(e);}
+}
+
+Exp ExpSecond(Exp e1):	
+{
+  	Exp e2;
+  	Identifier i1;
+  	ExpList el;
+}
+{
+	<AND> e2 = Exp() {return new And(e1,e2);}|
+	<LESS> e2 = Exp() {return new LessThan(e1,e2);}|
+	<PLUS> e2 = Exp() {return new Plus(e1,e2);}|
+	<SUB>  e2 = Exp() {return new Minus(e1,e2);}|
+	<MUL> e2 = Exp() {return new Times(e1,e2);}|
+	<LCOUCH> e2 = Exp() <RCOUCH> {return ExpSecond(e2);}|
+	LOOKAHEAD(2) <DOT> <LENGTH> {return new ArrayLength(e1);}|
+	<DOT> i1 = Identifier() <LPAREN> el = ExpList() <RPAREN> {return new Call(e1,i1,el);}|
+	{return e1;}
+}
+
+StatementList StatementList():
+{
+  	Statement s;
+  	StatementList sl = new StatementList();
+}
+{
+  	(s = Statement() {sl.addElement(s);})*
+  	{
+  	  	return sl;
+  	}
+}
+
+Statement Statement() :
+{
+	Statement s;
+}
+{
+  	(<LBRACE> s = Statement() <RBRACE>|
+	s = If()|
+	s = While()|
+	s = Print()|
+	s = Assign()
+	//|s = ArrayAssign()
+	)
+	{
+	  	return s;
+	}
+}
+
+Statement If() :
+{
+	Exp e;
+	Statement s1,s2;	
+}
+{
+	<IF> <LPAREN> e = Exp() <RPAREN> s1 = Statement() <ELSE> s2 = Statement()	
+	{
+	  	return new If(e,s1,s2);
+	}
+}
+
+Statement While():
+{
+  	Exp e;
+  	Statement s;
+}
+{
+  	<WHILE> <LPAREN> e = Exp() <RPAREN> s = Statement()
+  	{
+  	  	return new While(e,s);
+  	}
+}
+
+Statement Print():
+{
+  	Exp e;
+}
+{
+  	<PRINT> <LPAREN> e = Exp() <RPAREN> <SEMICOLON>
+  	{
+  	  	return new Print(e);
+  	}
+}
+
+Statement Assign():
+{
+  	Identifier i;
+  	Exp e;
+}
+{
+  	i = Identifier() <ASSIGN> e = Exp() <SEMICOLON>
+  	{
+  	  	return new Assign(i,e);
+  	}
+}
+
+Statement ArrayAssign():
+{
+  	Identifier i;
+  	Exp e1,e2;
+}
+{
+  	i = Identifier() <LCOUCH> e1 = Exp() <RCOUCH> <ASSIGN> e2 = Exp() <SEMICOLON>
+  	{
+  	  	return new ArrayAssign(i,e1,e2);
+  	}
+}
